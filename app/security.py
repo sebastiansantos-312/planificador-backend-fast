@@ -2,29 +2,28 @@
 security.py — Utilidades de seguridad: bcrypt y JWT.
 
 Sprint 2: Reemplaza autenticación en texto plano por:
-  - Hashing de contraseñas con bcrypt (passlib)
+  - Hashing de contraseñas con bcrypt
   - Tokens JWT firmados con HS256 (python-jose)
 
 Uso:
-  - hash_password(plain)        → str  (al registrar)
-  - verify_password(plain, hash)→ bool (al hacer login)
-  - create_access_token(data)   → str  (al login exitoso)
-  - get_current_user_email(token) → str (en endpoints protegidos)
+  - hash_password(plain)          → str  (al registrar)
+  - verify_password(plain, hash)  → bool (al hacer login)
+  - create_access_token(data)     → str  (al login exitoso)
+  - get_current_user_email(token) → str  (en endpoints protegidos)
 """
 
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
+import bcrypt
 
 # ── Configuración ────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "planificador-secret-key-2026")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 días
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer()
 
 
@@ -32,12 +31,12 @@ bearer_scheme = HTTPBearer()
 
 def hash_password(plain_password: str) -> str:
     """Genera el hash bcrypt de una contraseña en texto plano."""
-    return pwd_context.hash(plain_password)
+    return bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifica si una contraseña coincide con su hash bcrypt."""
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 # ── JWT ──────────────────────────────────────────────────────────────────────
