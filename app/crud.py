@@ -26,23 +26,15 @@ from fastapi import HTTPException
 # ─── USERS ───────────────────────────────────────────────────────────────────
 
 def create_user(db: Session, user: schemas.UserCreate):
-    """
-    Crea un nuevo usuario en la base de datos.
-
-    Recibe los datos validados por el esquema UserCreate y los persiste
-    en la tabla 'users'. La contraseña se guarda en texto plano en Sprint 1.
-
-    Args:
-        db (Session): Sesión activa de SQLAlchemy.
-        user (UserCreate): Datos del nuevo usuario.
-
-    Returns:
-        models.User: Objeto usuario recién creado con su UUID asignado.
-
-    TODO Sprint 2: Hashear la contraseña con bcrypt antes de guardar.
-    """
-    # TODO Sprint 2: hashear password con bcrypt
-    db_user = models.User(**user.dict())
+    from .security import hash_password  # import local para evitar ciclos
+    hashed = hash_password(user.password)
+    db_user = models.User(
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+        password=hashed,
+        birth_date=user.birth_date,
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
