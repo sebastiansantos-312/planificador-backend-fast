@@ -1,15 +1,5 @@
 """
 schemas.py — Esquemas Pydantic para validación y serialización de datos.
-
-Pydantic valida automáticamente los datos de entrada (request body) y salida
-(response) de cada endpoint. Si los datos no cumplen el esquema, FastAPI
-retorna un error 422 automáticamente.
-
-Convención de nomenclatura:
-  - XxxCreate:        Datos requeridos para crear un recurso (entrada).
-  - XxxUpdate:        Campos opcionales para actualizar un recurso (entrada PATCH).
-  - Xxx:              Representación completa del recurso (salida/response).
-  - XxxCreateByEmail: Variante que acepta email en lugar de UUID (más amigable).
 """
 
 from pydantic import BaseModel
@@ -21,7 +11,6 @@ from typing import Optional
 # ─── USER ────────────────────────────────────────────────────────────────────
 
 class UserCreate(BaseModel):
-    """Datos requeridos para registrar un nuevo usuario."""
     first_name: str
     last_name: str
     email: str
@@ -30,7 +19,6 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    """Campos opcionales para actualizar el perfil de un usuario (PATCH)."""
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[str] = None
@@ -39,10 +27,6 @@ class UserUpdate(BaseModel):
 
 
 class User(BaseModel):
-    """
-    Representación de un usuario en las respuestas de la API.
-    No incluye la contraseña por seguridad.
-    """
     id: UUID
     first_name: str
     last_name: str
@@ -50,26 +34,23 @@ class User(BaseModel):
     created_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True  # Permite convertir objetos ORM a este esquema
+        from_attributes = True
 
 
 # ─── SUBJECT ─────────────────────────────────────────────────────────────────
 
 class SubjectCreate(BaseModel):
-    """Datos requeridos para crear una materia usando el user_id directamente."""
     name: str
     color: Optional[str] = None
     user_id: UUID
 
 
 class SubjectUpdate(BaseModel):
-    """Campos opcionales para actualizar una materia (PATCH)."""
     name: Optional[str] = None
     color: Optional[str] = None
 
 
 class Subject(BaseModel):
-    """Representación completa de una materia en las respuestas de la API."""
     id: UUID
     name: str
     color: Optional[str] = None
@@ -83,19 +64,24 @@ class Subject(BaseModel):
 # ─── TASK ────────────────────────────────────────────────────────────────────
 
 class TaskCreate(BaseModel):
-    """Datos requeridos para crear una tarea usando IDs directamente."""
+    """
+    Datos para crear una tarea con IDs directamente.
+    task_type: Tipo de actividad requerido por US-01.
+               Valores: 'examen' | 'quiz' | 'taller' | 'proyecto' | 'exposición' | 'otro'
+    """
     title: str
+    task_type: Optional[str] = None                               # ← NUEVO (US-01)
     subject_id: Optional[UUID] = None
     user_id: UUID
     due_date: Optional[date] = None
     duration_minutes: Optional[int] = None
-    priority: Optional[str] = None    # Valores: 'alta' | 'media' | 'baja'
-    status: Optional[str] = "pending" # Valores: 'pending' | 'in_progress' | 'done'
+    priority: Optional[str] = None
+    status: Optional[str] = "pending"
 
 
 class TaskUpdate(BaseModel):
-    """Campos opcionales para actualizar una tarea (PATCH)."""
     title: Optional[str] = None
+    task_type: Optional[str] = None                               # ← NUEVO (US-01)
     subject_id: Optional[UUID] = None
     due_date: Optional[date] = None
     duration_minutes: Optional[int] = None
@@ -107,6 +93,7 @@ class Task(BaseModel):
     """Representación completa de una tarea en las respuestas de la API."""
     id: UUID
     title: str
+    task_type: Optional[str] = None                               # ← NUEVO (US-01)
     subject_id: Optional[UUID] = None
     user_id: UUID
     due_date: Optional[date] = None
@@ -122,17 +109,15 @@ class Task(BaseModel):
 # ─── SUBTASK ─────────────────────────────────────────────────────────────────
 
 class SubtaskCreate(BaseModel):
-    """Datos requeridos para crear una subtarea (paso de una tarea)."""
     task_id: UUID
     title: str
     description: Optional[str] = None
     target_date: Optional[date] = None
     estimated_minutes: Optional[int] = None
-    status: Optional[str] = "pending"  # Valores: 'pending' | 'done'
+    status: Optional[str] = "pending"
 
 
 class SubtaskUpdate(BaseModel):
-    """Campos opcionales para actualizar una subtarea (PATCH)."""
     title: Optional[str] = None
     description: Optional[str] = None
     target_date: Optional[date] = None
@@ -141,7 +126,6 @@ class SubtaskUpdate(BaseModel):
 
 
 class Subtask(BaseModel):
-    """Representación completa de una subtarea en las respuestas de la API."""
     id: UUID
     task_id: UUID
     title: str
@@ -156,14 +140,8 @@ class Subtask(BaseModel):
 
 
 # ─── VARIANTES POR EMAIL ─────────────────────────────────────────────────────
-# Estas variantes permiten usar el email del usuario en lugar de su UUID.
-# Son más amigables para el frontend, que almacena el email en localStorage.
 
 class SubjectCreateByEmail(BaseModel):
-    """
-    Alternativa a SubjectCreate que acepta email en lugar de user_id.
-    El backend resuelve internamente el UUID del usuario a partir del email.
-    """
     name: str
     color: Optional[str] = None
     user_email: str
@@ -171,12 +149,13 @@ class SubjectCreateByEmail(BaseModel):
 
 class TaskCreateByEmail(BaseModel):
     """
-    Alternativa a TaskCreate que acepta email y nombre de materia
-    en lugar de UUIDs. El backend resuelve los IDs internamente.
+    Alternativa a TaskCreate que acepta email y nombre de materia.
+    task_type agregado para consistencia con TaskCreate (US-01).
     """
     title: str
-    subject_name: str   # Nombre de la materia en lugar de subject_id
-    user_email: str     # Email del usuario en lugar de user_id
+    task_type: Optional[str] = None                               # ← NUEVO (US-01)
+    subject_name: str
+    user_email: str
     due_date: Optional[date] = None
     duration_minutes: Optional[int] = None
     priority: Optional[str] = None

@@ -624,20 +624,7 @@ def get_subjects_by_email(db: Session, user_email: str):
 def create_task_by_email(db: Session, data: schemas.TaskCreateByEmail):
     """
     Crea una tarea resolviendo usuario y materia a partir de email y nombre.
-
-    El frontend envía el email del usuario y el nombre de la materia.
-    Esta función busca el UUID del usuario por email y el UUID de la materia
-    por nombre + user_id, luego crea la tarea con los IDs correctos.
-
-    Args:
-        db (Session): Sesión activa de SQLAlchemy.
-        data (TaskCreateByEmail): Datos de la tarea con email y nombre de materia.
-
-    Returns:
-        models.Task: Tarea creada.
-
-    Raises:
-        HTTPException 404: Si no existe el usuario o la materia indicada.
+    task_type agregado para cumplir US-01.
     """
     user = get_user_by_email(db, data.user_email)
     if not user:
@@ -654,12 +641,13 @@ def create_task_by_email(db: Session, data: schemas.TaskCreateByEmail):
 
     db_task = models.Task(
         title=data.title,
+        task_type=data.task_type,                                 # ← NUEVO (US-01)
         subject_id=subject.id,
         user_id=user.id,
         due_date=data.due_date,
         duration_minutes=data.duration_minutes,
         priority=data.priority,
-        status=data.status
+        status=data.status,
     )
     db.add(db_task)
     db.commit()
