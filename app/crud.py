@@ -26,15 +26,23 @@ from fastapi import HTTPException
 # ─── USERS ───────────────────────────────────────────────────────────────────
 
 def create_user(db: Session, user: schemas.UserCreate):
-    from .security import hash_password  # import local para evitar ciclos
-    hashed = hash_password(user.password)
-    db_user = models.User(
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        password=hashed,
-        birth_date=user.birth_date,
-    )
+    """
+    Crea un nuevo usuario en la base de datos.
+
+    Recibe los datos validados por el esquema UserCreate y los persiste
+    en la tabla 'users'. La contraseña se guarda en texto plano en Sprint 1.
+
+    Args:
+        db (Session): Sesión activa de SQLAlchemy.
+        user (UserCreate): Datos del nuevo usuario.
+
+    Returns:
+        models.User: Objeto usuario recién creado con su UUID asignado.
+
+    TODO Sprint 2: Hashear la contraseña con bcrypt antes de guardar.
+    """
+    # TODO Sprint 2: hashear password con bcrypt
+    db_user = models.User(**user.dict())
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -131,36 +139,44 @@ def delete_user(db: Session, user_id: UUID):
 
 # ─── SUBJECTS ────────────────────────────────────────────────────────────────
 
-def create_subject(db: Session, subject: schemas.SubjectCreate):
+# Materias predefinidas y estáticas
+STATIC_SUBJECTS = [
+    {"name": "Matemáticas", "color": "#FF0000"},
+    {"name": "Ciencias Naturales", "color": "#40E0D0"},
+    {"name": "Lenguas", "color": "#ADD8E6"},
+    {"name": "Historia", "color": "#FFFF00"},
+    {"name": "Geografía", "color": "#800080"},
+    {"name": "Inglés", "color": "#E6E6FA"},
+]
+
+
+def initialize_static_subjects(db: Session):
     """
-    Crea una nueva materia usando el UUID del usuario.
+    Inicializa las materias estáticas en la base de datos si no existen.
 
     Args:
         db (Session): Sesión activa de SQLAlchemy.
-        subject (SubjectCreate): Datos de la materia (nombre, color, user_id).
-
-    Returns:
-        models.Subject: Materia creada.
     """
-    db_subject = models.Subject(**subject.dict())
-    db.add(db_subject)
+    for subj_data in STATIC_SUBJECTS:
+        existing = db.query(models.Subject).filter(models.Subject.name == subj_data["name"]).first()
+        if not existing:
+            db_subject = models.Subject(name=subj_data["name"], color=subj_data["color"])
+            db.add(db_subject)
     db.commit()
-    db.refresh(db_subject)
-    return db_subject
 
 
-def get_subjects(db: Session, user_id: UUID):
+def get_subjects(db: Session):
     """
-    Retorna todas las materias de un usuario por su UUID.
+    Retorna todas las materias predefinidas.
 
     Args:
         db (Session): Sesión activa de SQLAlchemy.
-        user_id (UUID): UUID del usuario propietario.
 
     Returns:
-        list[models.Subject]: Lista de materias del usuario.
+        list[models.Subject]: Lista de todas las materias estáticas.
     """
-    return db.query(models.Subject).filter(models.Subject.user_id == user_id).all()
+    static_names = [subj["name"] for subj in STATIC_SUBJECTS]
+    return db.query(models.Subject).filter(models.Subject.name.in_(static_names)).all()
 
 
 def get_subject(db: Session, subject_id: UUID):
@@ -181,48 +197,6 @@ def get_subject(db: Session, subject_id: UUID):
     if not db_subject:
         raise HTTPException(status_code=404, detail="Subject not found")
     return db_subject
-
-
-def update_subject(db: Session, subject_id: UUID, subject: schemas.SubjectUpdate):
-    """
-    Actualiza parcialmente una materia (PATCH).
-
-    Args:
-        db (Session): Sesión activa de SQLAlchemy.
-        subject_id (UUID): UUID de la materia a actualizar.
-        subject (SubjectUpdate): Campos a modificar (nombre y/o color).
-
-    Returns:
-        models.Subject: Materia actualizada.
-    """
-    db_subject = get_subject(db, subject_id)
-    for key, value in subject.dict(exclude_unset=True).items():
-        setattr(db_subject, key, value)
-    db.commit()
-    db.refresh(db_subject)
-    return db_subject
-
-
-def delete_subject(db: Session, subject_id: UUID):
-    """
-    Elimina una materia de la base de datos.
-
-    Args:
-        db (Session): Sesión activa de SQLAlchemy.
-        subject_id (UUID): UUID de la materia a eliminar.
-
-    Returns:
-        dict: Mensaje de confirmación.
-
-    Raises:
-        HTTPException 404: Si no existe la materia.
-    """
-    db_subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
-    if not db_subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
-    db.delete(db_subject)
-    db.commit()
-    return {"message": "subject deleted"}
 
 
 # ─── TASKS ───────────────────────────────────────────────────────────────────
@@ -570,66 +544,61 @@ def check_overload_conflict(
 
 def create_subject_by_email(db: Session, data: schemas.SubjectCreateByEmail):
     """
-    Crea una materia resolviendo el usuario a partir de su email.
+    No se permite crear materias: las materias son globales y predefinidas.
 
     Args:
         db (Session): Sesión activa de SQLAlchemy.
         data (SubjectCreateByEmail): Datos de la materia + email del usuario.
 
-    Returns:
-        models.Subject: Materia creada.
-
     Raises:
-        HTTPException 404: Si no existe usuario con ese email.
+        HTTPException 405: Operación no permitida.
     """
-    user = get_user_by_email(db, data.user_email)
-    if not user:
-        raise HTTPException(status_code=404, detail=f"No existe usuario con email: {data.user_email}")
-
-    db_subject = models.Subject(name=data.name, color=data.color, user_id=user.id)
-    db.add(db_subject)
-    db.commit()
-    db.refresh(db_subject)
-    return db_subject
+    raise HTTPException(
+        status_code=405,
+        detail="No se puede crear materias con este endpoint; use las materias predefinidas"
+    )
 
 
 def get_subjects_by_email(db: Session, user_email: str):
     """
-    Retorna las materias de un usuario identificado por email.
+    Retorna las materias predefinidas (filtradas de la BD).
 
     Args:
         db (Session): Sesión activa de SQLAlchemy.
-        user_email (str): Email del usuario.
+        user_email (str): Email del usuario (ignorado, ya que subjects son globales).
 
     Returns:
-        list[models.Subject]: Materias del usuario.
-
-    Raises:
-        HTTPException 404: Si no existe usuario con ese email.
+        list[models.Subject]: Lista de las 6 materias estáticas.
     """
-    user = get_user_by_email(db, user_email)
-    if not user:
-        raise HTTPException(status_code=404, detail=f"No existe usuario con email: {user_email}")
-    return db.query(models.Subject).filter(models.Subject.user_id == user.id).all()
+    static_names = [subj["name"] for subj in STATIC_SUBJECTS]
+    return db.query(models.Subject).filter(models.Subject.name.in_(static_names)).all()
 
 
 def create_task_by_email(db: Session, data: schemas.TaskCreateByEmail):
     """
     Crea una tarea resolviendo usuario y materia a partir de email y nombre.
-    task_type agregado para cumplir US-01.
+
+    El frontend envía el email del usuario y el nombre de la materia.
+    Esta función busca el UUID del usuario por email y el UUID de la materia
+    por nombre + user_id, luego crea la tarea con los IDs correctos.
+
+    Args:
+        db (Session): Sesión activa de SQLAlchemy.
+        data (TaskCreateByEmail): Datos de la tarea con email y nombre de materia.
+
+    Returns:
+        models.Task: Tarea creada.
+
+    Raises:
+        HTTPException 404: Si no existe el usuario o la materia indicada.
     """
     user = get_user_by_email(db, data.user_email)
     if not user:
         raise HTTPException(status_code=404, detail=f"No existe usuario con email: {data.user_email}")
 
-    subject = (
-        db.query(models.Subject)
-        .filter(models.Subject.name == data.subject_name)
-        .filter(models.Subject.user_id == user.id)
-        .first()
-    )
+    subject = db.query(models.Subject).filter(models.Subject.name == data.subject_name).first()
     if not subject:
-        raise HTTPException(status_code=404, detail=f"No existe materia '{data.subject_name}' para ese usuario")
+        raise HTTPException(status_code=404, detail=f"No existe materia '{data.subject_name}'")
 
     db_task = models.Task(
         title=data.title,

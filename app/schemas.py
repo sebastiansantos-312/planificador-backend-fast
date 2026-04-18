@@ -54,7 +54,6 @@ class Subject(BaseModel):
     id: UUID
     name: str
     color: Optional[str] = None
-    user_id: UUID
     created_at: Optional[datetime] = None
 
     class Config:
