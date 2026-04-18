@@ -53,13 +53,12 @@ class User(Base):
 
 class Subject(Base):
     """
-    Tabla 'subjects' — Representa una materia o asignatura del usuario.
+    Tabla 'subjects' — Representa una materia o asignatura predefinida.
 
     Columns:
         id (UUID): Identificador único generado automáticamente.
-        name (str): Nombre de la materia (ej: 'Cálculo', 'Bases de Datos').
+        name (str): Nombre de la materia (ej: 'Matemáticas', 'Ciencias Naturales').
         color (str): Color hex para identificar visualmente la materia en el frontend.
-        user_id (UUID): FK → users.id. Propietario de la materia.
         created_at (timestamp): Fecha de creación.
     """
     __tablename__ = "subjects"
@@ -67,7 +66,6 @@ class Subject(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String)
     color = Column(String)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at = Column(TIMESTAMP, server_default=func.now())
 
 

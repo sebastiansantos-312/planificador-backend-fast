@@ -14,14 +14,22 @@ Flujo de arranque:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import Base, engine
+from .database import Base, engine, SessionLocal
 from . import models
 from .routes import tasks, users, subjects, subtasks, auth
 
 # 1. Crear tablas en la BD a partir de los modelos SQLAlchemy
 Base.metadata.create_all(bind=engine)
 
-# 2. Instanciar la aplicación
+# 2. Inicializar materias estáticas si no existen
+from .crud import initialize_static_subjects
+db_session = SessionLocal()
+try:
+    initialize_static_subjects(db_session)
+finally:
+    db_session.close()
+
+# 3. Instanciar la aplicación
 app = FastAPI(title="Study Planner API", version="1.0.0")
 
 # 3. Configurar CORS

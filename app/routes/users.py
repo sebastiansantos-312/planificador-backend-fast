@@ -1,12 +1,10 @@
 """
-routes/users.py — Endpoints CRUD para usuarios.
+routes/users.py — Endpoints para usuarios.
 
-Gestiona el registro y administración de cuentas de usuario.
-El registro (POST /) crea un nuevo usuario en la BD.
-Los demás endpoints permiten consultar, actualizar y eliminar usuarios.
+Permite consultar usuarios. No se permite crear nuevos usuarios.
+Los usuarios deben ser creados manualmente en la base de datos.
 
 Endpoints:
-  POST   /users/      — Registra un nuevo usuario.
   GET    /users/      — Lista todos los usuarios.
   GET    /users/{id}  — Obtiene un usuario por UUID.
   PATCH  /users/{id}  — Actualiza el perfil de un usuario.
@@ -20,26 +18,6 @@ from ..database import get_db
 from .. import crud, schemas
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
-
-@router.post("/", response_model=schemas.User)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    """
-    Registra un nuevo usuario en el sistema.
-
-    Llamado desde AuthPage (formulario de registro) en el frontend.
-    La contraseña se almacena en texto plano en Sprint 1.
-
-    Args:
-        user (UserCreate): Datos del nuevo usuario (nombre, email, contraseña).
-        db (Session): Sesión de BD inyectada.
-
-    Returns:
-        User: Usuario creado (sin contraseña).
-
-    TODO Sprint 2: Validar email único antes de insertar, hashear contraseña.
-    """
-    return crud.create_user(db, user)
 
 
 @router.get("/", response_model=list[schemas.User])

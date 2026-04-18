@@ -1,18 +1,13 @@
 """
-routes/subjects.py — Endpoints CRUD para materias (subjects).
+routes/subjects.py — Endpoints para materias predefinidas.
 
-Permite crear, consultar, actualizar y eliminar las materias del usuario.
-Incluye variantes 'by-email' que usan el email del usuario en lugar de su UUID,
-ya que el frontend almacena el email en localStorage.
+Permite consultar las materias estáticas predefinidas.
+No se permiten crear, actualizar o eliminar, ya que son fijas.
 
 Endpoints:
-  POST   /subjects/           — Crea materia con user_id.
-  POST   /subjects/by-email   — Crea materia con email del usuario.
-  GET    /subjects/            — Lista materias por user_id.
-  GET    /subjects/by-email   — Lista materias por email del usuario.
+  GET    /subjects/            — Lista todas las materias predefinidas.
+  GET    /subjects/by-email    — Lista todas las materias predefinidas (por compatibilidad).
   GET    /subjects/{id}       — Obtiene una materia por UUID.
-  PATCH  /subjects/{id}       — Actualiza nombre o color de una materia.
-  DELETE /subjects/{id}       — Elimina una materia.
 """
 
 from fastapi import APIRouter, Depends
@@ -24,66 +19,31 @@ from .. import crud, schemas
 router = APIRouter(prefix="/subjects", tags=["Subjects"])
 
 
-@router.post("/", response_model=schemas.Subject)
-def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)):
-    """
-    Crea una nueva materia usando el UUID del usuario.
-
-    Args:
-        subject (SubjectCreate): Nombre, color y user_id de la materia.
-        db (Session): Sesión de BD inyectada.
-
-    Returns:
-        Subject: Materia creada.
-    """
-    return crud.create_subject(db, subject)
-
-
-@router.post("/by-email", response_model=schemas.Subject)
-def create_subject_by_email(subject: schemas.SubjectCreateByEmail, db: Session = Depends(get_db)):
-    """
-    Crea una nueva materia usando el email del usuario en lugar de su UUID.
-
-    El backend resuelve internamente el UUID del usuario a partir del email.
-
-    Args:
-        subject (SubjectCreateByEmail): Nombre, color y email del usuario.
-        db (Session): Sesión de BD inyectada.
-
-    Returns:
-        Subject: Materia creada.
-    """
-    return crud.create_subject_by_email(db, subject)
-
-
 @router.get("/", response_model=list[schemas.Subject])
-def get_subjects(user_id: UUID, db: Session = Depends(get_db)):
+def get_subjects(db: Session = Depends(get_db)):
     """
-    Lista todas las materias de un usuario por su UUID.
+    Lista todas las materias predefinidas.
 
     Args:
-        user_id (UUID): Query param con el UUID del usuario.
         db (Session): Sesión de BD inyectada.
 
     Returns:
-        list[Subject]: Materias del usuario.
+        list[Subject]: Todas las materias estáticas.
     """
-    return crud.get_subjects(db, user_id)
+    return crud.get_subjects(db)
 
 
 @router.get("/by-email", response_model=list[schemas.Subject])
 def get_subjects_by_email(user_email: str, db: Session = Depends(get_db)):
     """
-    Lista todas las materias de un usuario por su email.
-
-    Usado por el frontend para cargar las materias al iniciar sesión.
+    Lista todas las materias predefinidas (por compatibilidad con frontend).
 
     Args:
-        user_email (str): Query param con el email del usuario.
+        user_email (str): Query param con el email del usuario (ignorado).
         db (Session): Sesión de BD inyectada.
 
     Returns:
-        list[Subject]: Materias del usuario.
+        list[Subject]: Todas las materias estáticas.
     """
     return crud.get_subjects_by_email(db, user_email)
 
@@ -101,34 +61,3 @@ def get_subject(subject_id: UUID, db: Session = Depends(get_db)):
         Subject: Materia encontrada.
     """
     return crud.get_subject(db, subject_id)
-
-
-@router.patch("/{subject_id}", response_model=schemas.Subject)
-def update_subject(subject_id: UUID, subject: schemas.SubjectUpdate, db: Session = Depends(get_db)):
-    """
-    Actualiza el nombre o color de una materia.
-
-    Args:
-        subject_id (UUID): UUID de la materia a actualizar.
-        subject (SubjectUpdate): Campos a modificar.
-        db (Session): Sesión de BD inyectada.
-
-    Returns:
-        Subject: Materia actualizada.
-    """
-    return crud.update_subject(db, subject_id, subject)
-
-
-@router.delete("/{subject_id}")
-def delete_subject(subject_id: UUID, db: Session = Depends(get_db)):
-    """
-    Elimina una materia por su UUID.
-
-    Args:
-        subject_id (UUID): UUID de la materia a eliminar.
-        db (Session): Sesión de BD inyectada.
-
-    Returns:
-        dict: Mensaje de confirmación.
-    """
-    return crud.delete_subject(db, subject_id)

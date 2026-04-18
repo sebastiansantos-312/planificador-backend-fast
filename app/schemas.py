@@ -55,25 +55,11 @@ class User(BaseModel):
 
 # ─── SUBJECT ─────────────────────────────────────────────────────────────────
 
-class SubjectCreate(BaseModel):
-    """Datos requeridos para crear una materia usando el user_id directamente."""
-    name: str
-    color: Optional[str] = None
-    user_id: UUID
-
-
-class SubjectUpdate(BaseModel):
-    """Campos opcionales para actualizar una materia (PATCH)."""
-    name: Optional[str] = None
-    color: Optional[str] = None
-
-
 class Subject(BaseModel):
     """Representación completa de una materia en las respuestas de la API."""
     id: UUID
     name: str
     color: Optional[str] = None
-    user_id: UUID
     created_at: Optional[datetime] = None
 
     class Config:
@@ -158,15 +144,6 @@ class Subtask(BaseModel):
 # ─── VARIANTES POR EMAIL ─────────────────────────────────────────────────────
 # Estas variantes permiten usar el email del usuario en lugar de su UUID.
 # Son más amigables para el frontend, que almacena el email en localStorage.
-
-class SubjectCreateByEmail(BaseModel):
-    """
-    Alternativa a SubjectCreate que acepta email en lugar de user_id.
-    El backend resuelve internamente el UUID del usuario a partir del email.
-    """
-    name: str
-    color: Optional[str] = None
-    user_email: str
 
 
 class TaskCreateByEmail(BaseModel):
