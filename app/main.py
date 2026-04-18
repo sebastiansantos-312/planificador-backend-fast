@@ -15,8 +15,8 @@ Flujo de arranque:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import Base, engine, SessionLocal
-from . import models, crud
+from .database import Base, engine
+from . import models
 from .routes import tasks, users, subjects, subtasks, auth
 
 # 1. Crear tablas en la BD a partir de los modelos SQLAlchemy
@@ -24,8 +24,25 @@ Base.metadata.create_all(bind=engine)
 
 # 2. Inicializar materias estáticas
 try:
+    from .database import SessionLocal
+    from . import crud, models
+    
+    STATIC_SUBJECTS = [
+        {"name": "Matemáticas", "color": "#FF0000"},
+        {"name": "Ciencias Naturales", "color": "#40E0D0"},
+        {"name": "Lenguas", "color": "#ADD8E6"},
+        {"name": "Historia", "color": "#FFFF00"},
+        {"name": "Geografía", "color": "#800080"},
+        {"name": "Inglés", "color": "#E6E6FA"},
+    ]
+    
     db = SessionLocal()
-    crud.initialize_static_subjects(db)
+    for subj_data in STATIC_SUBJECTS:
+        existing = db.query(models.Subject).filter(models.Subject.name == subj_data["name"]).first()
+        if not existing:
+            db_subject = models.Subject(name=subj_data["name"], color=subj_data["color"])
+            db.add(db_subject)
+    db.commit()
     db.close()
 except Exception as e:
     print(f"Advertencia: No se pudieron inicializar las materias estáticas: {e}")
@@ -62,3 +79,19 @@ def root():
 def health():
     """Health check. Usado por Render para verificar que el servicio responde."""
     return {"status": "ok"}
+
+
+@app.get("/debug/subjects")
+def debug_subjects():
+    """Debug endpoint para verificar todas las materias en la BD."""
+    from .database import SessionLocal
+    from . import models
+    db = SessionLocal()
+    try:
+        all_subjects = db.query(models.Subject).all()
+        return {
+            "total_subjects": len(all_subjects),
+            "subjects": [{"id": str(s.id), "name": s.name, "color": s.color} for s in all_subjects]
+        }
+    finally:
+        db.close()
