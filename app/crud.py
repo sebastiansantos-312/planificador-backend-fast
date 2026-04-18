@@ -578,13 +578,13 @@ def create_task_by_email(db: Session, data: schemas.TaskCreateByEmail):
     """
     Crea una tarea resolviendo usuario y materia a partir de email y nombre.
 
-    El frontend envía el email del usuario y el nombre de la materia.
-    Esta función busca el UUID del usuario por email y el UUID de la materia
-    por nombre + user_id, luego crea la tarea con los IDs correctos.
+    El frontend envía el email del usuario y opcionalmente el nombre de la materia.
+    Esta función busca el UUID del usuario por email y, si se proporciona,
+    el UUID de la materia por nombre, luego crea la tarea con los IDs correctos.
 
     Args:
         db (Session): Sesión activa de SQLAlchemy.
-        data (TaskCreateByEmail): Datos de la tarea con email y nombre de materia.
+        data (TaskCreateByEmail): Datos de la tarea con email y nombre de materia opcional.
 
     Returns:
         models.Task: Tarea creada.
@@ -596,14 +596,17 @@ def create_task_by_email(db: Session, data: schemas.TaskCreateByEmail):
     if not user:
         raise HTTPException(status_code=404, detail=f"No existe usuario con email: {data.user_email}")
 
-    subject = db.query(models.Subject).filter(models.Subject.name == data.subject_name).first()
-    if not subject:
-        raise HTTPException(status_code=404, detail=f"No existe materia '{data.subject_name}'")
+    subject_id = None
+    if data.subject_name:
+        subject = db.query(models.Subject).filter(models.Subject.name == data.subject_name).first()
+        if not subject:
+            raise HTTPException(status_code=404, detail=f"No existe materia '{data.subject_name}'")
+        subject_id = subject.id
 
     db_task = models.Task(
         title=data.title,
         task_type=data.task_type,                                 # ← NUEVO (US-01)
-        subject_id=subject.id,
+        subject_id=subject_id,
         user_id=user.id,
         due_date=data.due_date,
         duration_minutes=data.duration_minutes,

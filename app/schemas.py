@@ -150,10 +150,11 @@ class TaskCreateByEmail(BaseModel):
     """
     Alternativa a TaskCreate que acepta email y nombre de materia.
     task_type agregado para consistencia con TaskCreate (US-01).
+    subject_name es opcional para permitir tareas sin materia asignada.
     """
     title: str
     task_type: Optional[str] = None                               # ← NUEVO (US-01)
-    subject_name: str
+    subject_name: Optional[str] = None
     user_email: str
     due_date: Optional[date] = None
     duration_minutes: Optional[int] = None
